@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
@@ -57,6 +57,27 @@ jobs:
         run: |
           dotnet run --project tests/BrimDeck.WindowsTests -c Release --no-build -- --hosted
           if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed.' }
+      # PRs get the same installer and portable package as a release, but only as a short-lived Actions artifact.
+      # The temporary version and notes never enter releases/ or GitHub Releases.
+      - name: Package pull request build
+        if: github.event_name == 'pull_request'
+        env:
+          BUILD_VERSION: 0.0.0-alpha.${{ github.run_number }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          $notes = Join-Path $env:RUNNER_TEMP 'pr-build-notes.md'
+          $body = "# Pull request build`n`nAutomated test package for pull request #$env:PR_NUMBER. This is not a public release."
+          [IO.File]::WriteAllText($notes, $body, [Text.UTF8Encoding]::new($false))
+          ./scripts/Publish-Release.ps1 -Version $env:BUILD_VERSION -ReleaseNotes $notes -OutputDirectory 'artifacts/pr-build'
+          if ($LASTEXITCODE -ne 0) { throw 'PR packaging failed.' }
+      - name: Upload pull request build
+        if: github.event_name == 'pull_request' && success()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: BrimDeck-PR-${{ github.event.pull_request.number }}-${{ github.run_number }}
+          path: artifacts/pr-build/*
+          if-no-files-found: error
+          retention-days: 14
       # Started by hand from the Actions tab: every Windows check, to see which of the left-out ones this runner can answer.
       # It never fails the run; the log is the result.
       - name: Windows tests (everything, for information)
