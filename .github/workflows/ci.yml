@@ -6,6 +6,8 @@ name: Checks
 on:
   pull_request:
     branches: [dev, main, 'release/**']
+  push:
+    branches: [fix/mchose-a7-v3-ultra-plus]
   workflow_dispatch:
 permissions:
   contents: read
@@ -60,9 +62,9 @@ jobs:
       # PRs get the same installer and portable package as a release, but only as a short-lived Actions artifact.
       # Resolve the latest version from releases/ using ReleaseVersion.targets' alpha < beta < stable ordering.
       - name: Package pull request build
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' || github.ref == 'refs/heads/fix/mchose-a7-v3-ultra-plus'
         env:
-          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_NUMBER: ${{ github.event.pull_request.number || 'branch' }}
         run: |
           $versions = @(Get-ChildItem -LiteralPath 'releases' -Filter '*.md' -File | ForEach-Object {
               $name = $_.BaseName
@@ -86,10 +88,10 @@ jobs:
           ./scripts/Publish-Release.ps1 -Version $env:BUILD_VERSION -ReleaseNotes $notes -OutputDirectory 'artifacts/pr-build'
           if ($LASTEXITCODE -ne 0) { throw 'PR packaging failed.' }
       - name: Upload pull request build
-        if: github.event_name == 'pull_request' && success()
+        if: (github.event_name == 'pull_request' || github.ref == 'refs/heads/fix/mchose-a7-v3-ultra-plus') && success()
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: BrimDeck-PR-${{ github.event.pull_request.number }}-${{ github.run_number }}
+          name: BrimDeck-PR-${{ github.event.pull_request.number || 'branch' }}-${{ github.run_number }}
           path: artifacts/pr-build/*
           if-no-files-found: error
           retention-days: 14
