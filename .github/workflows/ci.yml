@@ -58,14 +58,15 @@ jobs:
           dotnet run --project tests/BrimDeck.WindowsTests -c Release --no-build -- --hosted
           if ($LASTEXITCODE -ne 0) { throw 'Windows tests failed.' }
       # PRs get the same installer and portable package as a release, but only as a short-lived Actions artifact.
-      # Resolve the version from releases/ using the same alpha < beta < stable ordering as ReleaseVersion.targets.
+      # Resolve the latest version from releases/ using ReleaseVersion.targets' alpha < beta < stable ordering.
       - name: Package pull request build
         if: github.event_name == 'pull_request'
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           $versions = @(Get-ChildItem -LiteralPath 'releases' -Filter '*.md' -File | ForEach-Object {
-              if ($_.BaseName -match '^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?      - name: Upload pull request build
+              if ($_.BaseName -match '^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?
+      - name: Upload pull request build
         if: github.event_name == 'pull_request' && success()
         uses: actions/upload-artifact@v7.0.1
         with:
@@ -98,7 +99,7 @@ jobs:
           $env:BUILD_VERSION = $latest.Name
           Write-Host "Packaging PR #$env:PR_NUMBER with upstream-synced version $env:BUILD_VERSION"
           $notes = Join-Path $env:RUNNER_TEMP 'pr-build-notes.md'
-          $body = "# Pull request build`n`nAutomated test package for pull request #$env:PR_NUMBER. Version $env:BUILD_VERSION. This is not a public release."
+          $body = "# Pull request build" + [Environment]::NewLine + [Environment]::NewLine + "Automated test package for pull request #$env:PR_NUMBER. Version $env:BUILD_VERSION. This is not a public release."
           [IO.File]::WriteAllText($notes, $body, [Text.UTF8Encoding]::new($false))
           ./scripts/Publish-Release.ps1 -Version $env:BUILD_VERSION -ReleaseNotes $notes -OutputDirectory 'artifacts/pr-build'
           if ($LASTEXITCODE -ne 0) { throw 'PR packaging failed.' }
