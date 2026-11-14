@@ -322,7 +322,7 @@ static class DeviceProtocolTests
             Dongles.VgnV108Request().SequenceEqual(Bytes("13 4A 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 5E"))
             && Dongles.VgnV108Battery(vgn108Reply) == new BatteryRead(100)
             && Dongles.VgnV108Battery(vgn108Reply[..^1].Concat(new byte[] { 0 }).ToArray()) is null
-            && Dongles.VgnV108Battery(Bytes("13 4A 01 00 02 65 01 00 00 00 00 00 00 00 00 00 00 00 00 C6")) == new BatteryRead(101) is false);
+            && Dongles.VgnV108Battery(Bytes("13 4A 01 00 02 65 01 00 00 00 00 00 00 00 00 00 00 00 00 C6")) is null);
         check("VGN V108: only its MI_01 HID collection with full reports",
             Dongles.Find(Dongles.VgnV108Vendor, Dongles.VgnV108Receiver, 0x0001, "VGN V108 2.4G Dongle", 0, 1, 0x0006, 25, 20) == Dongles.Protocol.Vgn
             && Dongles.Find(Dongles.VgnV108Vendor, Dongles.VgnV108Receiver, 0x0001, "VGN V108 2.4G Dongle", 0, 0, 0x0006, 8, 0) is null
