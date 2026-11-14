@@ -310,7 +310,9 @@ public static class Dongles
     {
         var frame = new byte[20];
         frame[0] = 0x13; frame[1] = 0x4A; frame[2] = 0x01;
-        for (int i = 0; i < frame.Length - 1; i++) frame[^1] += frame[i];
+        int checksum = 0;
+        for (int i = 0; i < frame.Length - 1; i++) checksum += frame[i];
+        frame[^1] = (byte)checksum;
         return frame;
     }
     public static BatteryRead? VgnV108Battery(byte[] reply)
